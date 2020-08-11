@@ -31,47 +31,80 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
+enum ButtonState {
+  on, off, loading
+}
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
 
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin{
 
-  void _incrementCounter() {
+  AnimationController _controller;
+  Animation<double> _scaleAnimation;
+  ButtonState buttonState;
+
+  void addFavorite() async{
+    ButtonState temp = buttonState;
+    print("before: $buttonState");
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      buttonState = ButtonState.loading;
+      _button = CircularProgressIndicator();
     });
+    await Future.delayed(Duration(seconds: 2));
+    setState(() {
+      buttonState = temp == ButtonState.off ? ButtonState.on : ButtonState.off;
+      _button = IconButton(
+        iconSize: 32,
+        icon: buttonState == ButtonState.off
+            ? Icon(Icons.favorite_border, color: Colors.teal,)
+            : Icon(Icons.favorite, color: Colors.red,),
+        onPressed: addFavorite,
+      );
+    });
+  print("$buttonState,$temp");
   }
+  Widget _button;
+
+  Animation<double> animate;
+
+  @override
+  void initState() {
+    buttonState = ButtonState.off;
+
+    _button = IconButton(
+      iconSize: 32,
+      icon: buttonState == ButtonState.off
+          ? Icon(Icons.favorite_border, color: Colors.teal,)
+          : Icon(Icons.favorite, color: Colors.red,),
+      onPressed: () async=> addFavorite(),
+    );
+    _controller = AnimationController(vsync: this,duration: Duration(milliseconds: 200));
+  _scaleAnimation = Tween<double>(
+    begin: 0.2,
+    end: 1.0,
+  ).animate(
+    CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(
+        0.35,
+        0.7,
+        curve: OvershootCurve(),
+      ),
+    ),
+  );
+    // TODO: implement initState
+    super.initState();
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
@@ -81,35 +114,13 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child:   LikeButton(
-          key: Key("ad"),
-          size: 32,
-          circleColor:
-          CircleColor(start: Color(0xff00ddff), end: Color(0xff0099cc)),
-          bubblesColor: BubblesColor(
-            dotPrimaryColor: Color(0xff33b5e5),
-            dotSecondaryColor: Color(0xff0099cc),
-          ),
-          onTap: (isLiked) async{
-            setState(() {
-
-            });
-            return !isLiked;
-          },
-          likeBuilder: (bool isLiked) {
-            return Icon(
-              Icons.home,
-              color: isLiked ? Colors.deepPurpleAccent : Colors.grey,
-              size: 32,
-            );
-          },
+        child:   AnimatedSwitcher(
+          duration: Duration(milliseconds: 200),
+          transitionBuilder: (button, scaleAnimation) =>
+              ScaleTransition(child: button, scale: scaleAnimation,),
+          child: _button,
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
